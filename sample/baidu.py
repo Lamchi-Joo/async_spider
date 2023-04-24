@@ -1,19 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-    baidu.py
-    ~~~~~~~~~~~
 
-    :author: Lamchi
-    :copyright: (c) 2023, qizhidao
-    :date created: 2023-04-24
-    :python version: 3.7.3
-"""
 from sample.base_spider import BaseSpider
 
 
 class Spider(BaseSpider):
-
     name = "百度"
     encoding = "utf-8"
     concurrent_limit = 100
