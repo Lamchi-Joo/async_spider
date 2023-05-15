@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import asyncio
-import datetime
+from aiologger import Logger
 import os
 import sys
 from os import makedirs
 from os.path import dirname, exists, abspath
 
-from aiologger import Logger
 from aiologger.formatters.base import Formatter
-from aiologger.handlers.files import AsyncFileHandler
+from aiologger.handlers.files import AsyncTimedRotatingFileHandler, RolloverInterval
 from aiologger.handlers.streams import AsyncStreamHandler
 
 loggers = {}
@@ -40,8 +39,7 @@ def get_logger(name=None, debug=False) -> Logger:
     if loggers.get(name):
         return loggers[name]
 
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-    file_name = name + '-' + today + '.log'
+    file_name = name + '.log'
     log_path = os.path.join(LOG_DIR, file_name)
 
     # 输出到控制台
@@ -58,7 +56,11 @@ def get_logger(name=None, debug=False) -> Logger:
             if not exists(log_dir):
                 makedirs(log_dir)
             # 添加 FileHandler
-            file_handler = AsyncFileHandler(filename=log_path, encoding='utf-8', mode='a')
+            file_handler = AsyncTimedRotatingFileHandler(
+                filename=log_path,
+                encoding='utf-8',
+                when=RolloverInterval.MIDNIGHT
+            )
             file_handler.formatter = formatter
             logger.add_handler(file_handler)
 
@@ -72,12 +74,11 @@ async def main():
     log_list = []
     for i in range(100):
         log_list.append(
-            logger.info(f'hello error {i}')
+          logger.info(f'hello error {i}')
         )
     await asyncio.gather(*log_list)
 
     await logger.shutdown()
-
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
