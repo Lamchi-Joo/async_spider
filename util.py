@@ -24,12 +24,12 @@ def request_retry():
                 url = kwargs.get('url')
             else:
                 url = args[0]
+            if not url:
+                raise Exception('url is None')
+            if not (isinstance(max_retry_count, int) and max_retry_count >= 0):
+                raise Exception('max_retry_count must be integer and greater or equal to 0')
             while True:
                 try:
-                    if not url:
-                        raise Exception('url is None')
-                    if not (isinstance(max_retry_count, int) and max_retry_count >= 0):
-                        raise Exception('max_retry_count must be integer and greater or equal to 0')
                     result = await func(self, *args, **kwargs)
                 except aiohttp.client_exceptions.ClientConnectorError:
                     # 处理ip代理挂了的情况
