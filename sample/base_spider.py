@@ -55,8 +55,11 @@ class BaseSpider(object):
         :param url:
         :param kwargs: url,headers,data,params,etc,,
         """
-        auto_proxy = kwargs.pop("auto_proxy", False)
+        auto_proxy = kwargs.pop("auto_proxy", True)
         auto_ua = kwargs.pop("auto_ua", False)
+        if 'params' in kwargs:
+            url = url_concat(url, kwargs['params'])
+            del kwargs['params']
         if 'request_timeout' not in kwargs:
             kwargs['request_timeout'] = 30
         if 'max_redirects' not in kwargs:
@@ -64,8 +67,6 @@ class BaseSpider(object):
         if 'data' in kwargs:
             kwargs['body'] = url_concat('?', kwargs['data'])[1:]
             del kwargs['data']
-        if 'method' not in kwargs:
-            kwargs['method'] = "GET"
         if 'formdata' in kwargs:
             kwargs['body'] = url_concat('?', kwargs['formdata'])[1:]
             del kwargs['formdata']
@@ -75,6 +76,8 @@ class BaseSpider(object):
             kwargs['follow_redirects'] = False
         if 'validate_cert' not in kwargs:
             kwargs['validate_cert'] = False
+        if 'method' not in kwargs:
+            kwargs['method'] = "GET"
         if 'headers' not in kwargs:
             kwargs['headers'] = {
                 "Accept-Encoding": "gzip, deflate",
@@ -89,7 +92,7 @@ class BaseSpider(object):
             kwargs.update(proxy)
         if auto_ua:
             headers = deepcopy(kwargs['headers'])
-            headers['User-Agent'] = self.fake_user_agent.random
+            headers['User-Agent'] = UserAgent()
             kwargs['headers'] = headers
         response = await self.requester.fetch(url, **kwargs)
         return response
