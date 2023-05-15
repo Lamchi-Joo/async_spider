@@ -114,7 +114,7 @@ class BaseSpider(object):
         """
         await self.init_session()
         await self.logger.info(f'{self.name} start running！！！')
-        _start = time.time()
+        start_time = time.monotonic()
         for url in self.urls:
             await self.task_queue.put(url)
         while self.task_queue:
@@ -130,9 +130,11 @@ class BaseSpider(object):
                 break
             coroutines = [asyncio.ensure_future(self.create_task(url)) for url in urls]
             await asyncio.wait(coroutines)
-        _end = time.time()
+        end_time = time.monotonic()
+        elapsed_time = end_time - start_time
+        elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
         await self.logger.info(
-            f'{self.name} finished, cost time: {_end - _start}s.'
+            f'{self.name} finished, cost time: {elapsed_time_str}.'
         )
         await self.close()
 
