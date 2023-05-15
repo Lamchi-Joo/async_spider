@@ -9,22 +9,24 @@ class Spider(BaseSpider):
     encoding = "utf-8"
     concurrent_limit = 100
     RETRY_TIME_DELAY = 0.01
-    MAX_RETRY_COUNT = 2
+    MAX_RETRY_COUNT = 5
 
-    urls = [
-        "https://baidu.com" for i in range(100)
+    msgs = [
+        "https://www.baidu.com/s" for i in range(1)
     ]
 
-    async def start_request(self, url):
+    async def start_request(self, msg):
+        url = msg
         resp = await self.aio_request(
             url,
             auto_proxy=False,  # 自动添加代理
             auto_ua=False,  # 自动添加请求头
-            follow_redirects=True  # 重定向
+            follow_redirects=True,  # 重定向
+            params={
+                "wd": "你好"
+            }
         )
         await self.logger.info(resp.code)
-        text = self.decode_body(resp)
-        print(text)
 
 
 if __name__ == '__main__':
