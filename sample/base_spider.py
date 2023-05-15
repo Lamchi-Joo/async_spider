@@ -30,7 +30,7 @@ class BaseSpider(object):
     MAX_RETRY_COUNT = 5  # 重试次数
     RETRY_TIME_DELAY = 0  # 重试延迟
     concurrent_limit = 50  # 并发次数
-    urls = []  # 待采集的urls
+    msgs = []  # url list or other keyword list
     name = ""
     encoding = "utf-8"  # 解码 HTTPResponse.body
 
@@ -64,6 +64,8 @@ class BaseSpider(object):
         if 'data' in kwargs:
             kwargs['body'] = url_concat('?', kwargs['data'])[1:]
             del kwargs['data']
+        if 'method' not in kwargs:
+            kwargs['method'] = "GET"
         if 'formdata' in kwargs:
             kwargs['body'] = url_concat('?', kwargs['formdata'])[1:]
             del kwargs['formdata']
@@ -92,43 +94,60 @@ class BaseSpider(object):
         response = await self.requester.fetch(url, **kwargs)
         return response
 
-    async def create_task(self, url: Optional[Union[str, int]] = None) -> None:
+    async def create_task(self, msg: Optional[Union[str, int]] = None) -> None:
         """
-        构造请求
-        :param url:
+        :param msg: url or other keyword
         :return:
         """
         async with self.semaphore:
             try:
-                await self.start_request(url)
+                await self.start_request(msg)
             except:
                 await self.logger.warning(traceback.format_exc())
 
-    async def start_request(self, url):
+    async def start_request(self, msg):
         raise NotImplementedError
+
+    def msg_generator(self):
+        """
+        使用生成器来节省内存，如果大批量采集可以复写该函数，例如文件读写
+        with open("*******", "r") as f:
+            for i in f:
+                yield i.strip()
+        """
+        for msg in self.msgs:
+            yield msg
 
     async def start(self):
         """
-        生成协程生成器，分流
+        start running
         :return:
         """
         await self.init_session()
         await self.logger.info(f'{self.name} start running！！！')
         start_time = time.monotonic()
-        for url in self.urls:
-            await self.task_queue.put(url)
-        while self.task_queue:
-            urls = []
-            if self.task_queue.qsize() >= self.concurrent_limit:
-                num = self.concurrent_limit
-            else:
-                num = self.task_queue.qsize()
-            for i in range(num):
-                url = await self.task_queue.get()
-                urls.append(url)
-            if not urls:
+
+        msg_generator = self.msg_generator()
+        while True:
+            msgs = []
+            q_size = self.concurrent_limit - self.task_queue.qsize()
+            if q_size > 0:
+                for i in range(q_size):
+                    try:
+                        msg = next(msg_generator)
+                        self.task_queue.put_nowait(msg)
+                    except StopIteration:
+                        break
+
+            for i in range(self.concurrent_limit):
+                try:
+                    msg = self.task_queue.get_nowait()
+                    msgs.append(msg)
+                except asyncio.queues.QueueEmpty:
+                    break
+            if not msgs:
                 break
-            coroutines = [asyncio.ensure_future(self.create_task(url)) for url in urls]
+            coroutines = [asyncio.ensure_future(self.create_task(msg)) for msg in msgs]
             await asyncio.wait(coroutines)
         end_time = time.monotonic()
         elapsed_time = end_time - start_time
@@ -161,7 +180,7 @@ class BaseSpider(object):
 
     def decode_body(self, response):
         """
-        解码,采用cchardet来进行解码
+        解码，采用cchardet来进行解码
         """
         try:
             text = response.body.decode(self.encoding)
