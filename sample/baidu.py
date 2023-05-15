@@ -12,7 +12,7 @@ class Spider(BaseSpider):
     MAX_RETRY_COUNT = 5
 
     msgs = [
-        "https://www.baidu.com/s" for i in range(100)
+        "https://www.baidu.com/" for i in range(100)
     ]
 
     async def start_request(self, msg):
@@ -22,9 +22,9 @@ class Spider(BaseSpider):
             auto_proxy=False,  # 自动添加代理
             auto_ua=False,  # 自动添加请求头
             follow_redirects=True,  # 重定向
-            params={
-                "wd": "你好"
-            }
+#             params={
+#                 "wd": "你好"
+#             }
         )
         await self.logger.info(resp.code)
 
