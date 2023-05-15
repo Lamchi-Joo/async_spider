@@ -12,7 +12,7 @@ class Spider(BaseSpider):
     MAX_RETRY_COUNT = 5
 
     msgs = [
-        "https://www.baidu.com/s" for i in range(1)
+        "https://www.baidu.com/s" for i in range(100)
     ]
 
     async def start_request(self, msg):
