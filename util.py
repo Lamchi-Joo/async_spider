@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 import re
 import asyncio
-import traceback
 from functools import wraps
 
 import aiohttp
 import aiohttp.client_exceptions
+from tornado.httpclient import HTTPError
 
 
 def request_retry():
     """
-    请求重试装饰器
+    重试装饰器
     """
 
     def wrap(func):
@@ -29,20 +29,33 @@ def request_retry():
             if not (isinstance(max_retry_count, int) and max_retry_count >= 0):
                 raise Exception('max_retry_count must be integer and greater or equal to 0')
             while True:
+                if retry_count > max_retry_count:
+                    return
+                if retry_count > 0:
+                    await self.logger.info(f'[RETRY] retry_count: {retry_count}, url: {url}')
                 try:
                     result = await func(self, *args, **kwargs)
                 except aiohttp.client_exceptions.ClientConnectorError:
                     # 处理ip代理挂了的情况
                     retry_count += 1
                     await asyncio.sleep(300)
-                except:
-                    if retry_count >= max_retry_count:
-                        return None
+                except HTTPError as e:
+                    if e.response:
+                        if e.response.code == 404:
+                            # 404 not found, return immediately
+                            return
+                        else:
+                            retry_count += 1
+                            if retry_time_delay:
+                                await asyncio.sleep(retry_time_delay)
                     else:
-                        traceback.print_exc(limit=3)
                         retry_count += 1
                         if retry_time_delay:
                             await asyncio.sleep(retry_time_delay)
+                except:
+                    retry_count += 1
+                    if retry_time_delay:
+                        await asyncio.sleep(retry_time_delay)
                 else:
                     return result
 
