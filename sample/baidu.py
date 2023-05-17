@@ -20,11 +20,8 @@ class Spider(BaseSpider):
         resp = await self.aio_request(
             url,
             auto_proxy=False,  # 自动添加代理
-            auto_ua=False,  # 自动添加请求头
+            auto_ua=True,  # 随机User-Agent
             follow_redirects=True,  # 重定向
-#             params={
-#                 "wd": "你好"
-#             }
         )
         await self.logger.info(resp.code)
 
