@@ -67,9 +67,9 @@ if __name__ == '__main__':
 * 使用pycurl进行http连接，速度更快
 * 异步日志打印，提升速度
 * 请求重试装饰器，老板再也不用担心我丢数据啦
-* 使用队列进行任务的添加和提取，减少下一页递归时的内存占用（大规模采集可考虑替换为redis队列）
+* 使用生成器以及队列进行任务的添加和提取，减少下一页递归时的内存占用（大规模采集可考虑替换为redis队列）
 
-## · 注意aiologger暂不支持windows，可以把aiologger替换为loguru
+## · 注意aiologger暂不支持windows，windows下开发可以把aiologger替换为loguru
 
 ## · 有任何使用问题联系
 ```shell
