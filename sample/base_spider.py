@@ -92,7 +92,7 @@ class BaseSpider(object):
             kwargs.update(proxy)
         if auto_ua:
             headers = deepcopy(kwargs['headers'])
-            headers['User-Agent'] = UserAgent()
+            headers['User-Agent'] = self.fake_user_agent.random
             kwargs['headers'] = headers
         response = await self.requester.fetch(url, **kwargs)
         return response
