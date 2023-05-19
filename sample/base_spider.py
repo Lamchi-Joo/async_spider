@@ -34,13 +34,13 @@ class BaseSpider(object):
     name = ""
     encoding = "utf-8"  # 解码 HTTPResponse.body
 
-    def __init__(self):
+    def __init__(self, batch_size=10000):
 
         self.logger = None
-        self.semaphore = None
         self.db = None
         self.bf = None
         self.task_queue = None
+        self.batch_size = batch_size
         self.requester = RequestWrapper()
         self.fake_user_agent = UserAgent()
         assert self.name != "", "Spider`name is empty"
@@ -97,16 +97,15 @@ class BaseSpider(object):
         response = await self.requester.fetch(url, **kwargs)
         return response
 
-    async def create_task(self, msg: Optional[Union[str, int]] = None) -> None:
+    async def start_task(self, msg: Optional[Union[str, int]] = None) -> None:
         """
         :param msg: url or other keyword
         :return:
         """
-        async with self.semaphore:
-            try:
-                await self.start_request(msg)
-            except:
-                await self.logger.warning(traceback.format_exc())
+        try:
+            await self.start_request(msg)
+        except:
+            await self.logger.warning(traceback.format_exc())
 
     async def start_request(self, msg):
         raise NotImplementedError
@@ -131,27 +130,28 @@ class BaseSpider(object):
         start_time = time.monotonic()
 
         msg_generator = self.msg_generator()
-        while True:
-            msgs = []
-            q_size = self.concurrent_limit - self.task_queue.qsize()
-            if q_size > 0:
-                for i in range(q_size):
-                    try:
-                        msg = next(msg_generator)
-                        self.task_queue.put_nowait(msg)
-                    except StopIteration:
-                        break
 
-            for i in range(self.concurrent_limit):
-                try:
-                    msg = self.task_queue.get_nowait()
-                    msgs.append(msg)
-                except asyncio.queues.QueueEmpty:
+        async def worker_loop(worker):
+            await self.logger.info(f'worker {worker}: loop started')
+            while True:
+                # 从生成器取出任务添加进队列
+                if self.task_queue.empty():
+                    for i in range(self.batch_size):
+                        try:
+                            msg = next(msg_generator)
+                            await self.task_queue.put(msg)
+                        except StopIteration:
+                            break
+
+                if self.task_queue.empty():
                     break
-            if not msgs:
-                break
-            coroutines = [asyncio.ensure_future(self.create_task(msg)) for msg in msgs]
-            await asyncio.wait(coroutines)
+
+                msg = await self.task_queue.get()
+                await self.start_task(msg)  # 执行任务
+
+        # 根据self.concurrent_limit启动多个任务处理协程
+        task_processing_coroutines = [asyncio.create_task(worker_loop(_)) for _ in range(self.concurrent_limit)]
+        await asyncio.gather(*task_processing_coroutines)
         end_time = time.monotonic()
         elapsed_time = end_time - start_time
         elapsed_time_str = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
@@ -168,8 +168,7 @@ class BaseSpider(object):
         pass
 
     async def init_session(self):
-        self.semaphore = asyncio.Semaphore(value=self.concurrent_limit)
-        self.task_queue = asyncio.Queue()
+        self.task_queue = asyncio.Queue(maxsize=self.batch_size)
         name = "debug_filter"
         self.bf = RedisBloomFilter(name=name)  # 布隆过滤器
         self.logger = get_logger(self.name)
