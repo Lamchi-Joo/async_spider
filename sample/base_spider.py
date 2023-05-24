@@ -132,8 +132,13 @@ class BaseSpider(object):
         msg_generator = self.msg_generator()
 
         async def worker_loop(worker):
-            await self.logger.info(f'worker {worker}: loop started')
+            await self.logger.info(f'worker {worker}: loop started...')
+            worker_loop_retry_count = 0
             while True:
+                if worker_loop_retry_count >= 3:
+                    await self.logger.info(f'worker {worker}: loop closed...')
+                    return
+
                 # 从生成器取出任务添加进队列
                 if self.task_queue.empty():
                     for i in range(self.batch_size):
@@ -143,10 +148,14 @@ class BaseSpider(object):
                         except StopIteration:
                             break
 
-                if self.task_queue.empty():
-                    break
+                try:
+                    msg = self.task_queue.get_nowait()
+                except asyncio.queues.QueueEmpty:
+                    worker_loop_retry_count += 1
+                    await self.logger.info(f'worker {worker}: queue is empty, waiting...')
+                    await asyncio.sleep(0.5)
+                    continue
 
-                msg = await self.task_queue.get()
                 await self.start_task(msg)  # 执行任务
 
         # 根据self.concurrent_limit启动多个任务处理协程
