@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import asyncio
 from copy import deepcopy
 import time
@@ -12,10 +13,10 @@ import cchardet as chardet
 from tornado.httputil import url_concat
 from fake_useragent import UserAgent
 
-from aiologger_helper import get_logger
-from bloom_filter_on_redis import RedisBloomFilter
-from request import RequestWrapper
-from util import request_retry, get_proxies
+from async_spider.utils.aiologger_helper import get_logger
+from async_spider.utils.bloom_filter_on_redis import RedisBloomFilter
+from async_spider.request_wrapper import RequestWrapper
+from async_spider.utils import request_retry, get_proxies
 
 try:
     import uvloop
@@ -41,7 +42,7 @@ class BaseSpider(object):
         self.bf = None
         self.task_queue = None
         self.batch_size = batch_size
-        self.requester = RequestWrapper()
+        self.request_wrapper = RequestWrapper()
         self.fake_user_agent = UserAgent()
         assert self.name != "", "Spider`name is empty"
 
@@ -94,7 +95,7 @@ class BaseSpider(object):
             headers = deepcopy(kwargs['headers'])
             headers['User-Agent'] = self.fake_user_agent.random
             kwargs['headers'] = headers
-        response = await self.requester.fetch(url, **kwargs)
+        response = await self.request_wrapper.fetch(url, **kwargs)
         return response
 
     async def start_task(self, msg: Optional[Union[str, int]] = None) -> None:
@@ -152,7 +153,7 @@ class BaseSpider(object):
                     msg = self.task_queue.get_nowait()
                 except asyncio.queues.QueueEmpty:
                     worker_loop_retry_count += 1
-                    await self.logger.info(f'worker {worker}: queue is empty, waiting...')
+                    await self.logger.debug(f'worker {worker}: queue is empty, waiting...')
                     await asyncio.sleep(0.5)
                     continue
 

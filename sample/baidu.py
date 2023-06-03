@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from sample.base_spider import BaseSpider
+from async_spider.spider import BaseSpider
 
 
 class Spider(BaseSpider):

@@ -21,14 +21,14 @@ python -m pip intsall -r requirements.txt
 ```
 
 ## · demo
+
 ```python
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sample.base_spider import BaseSpider
+from async_spider.spider import BaseSpider
 
 
 class Spider(BaseSpider):
-
     name = "百度"
     encoding = "utf-8"
     concurrent_limit = 100

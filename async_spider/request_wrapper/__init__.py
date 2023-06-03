@@ -11,11 +11,11 @@ class RequestWrapper(object):
 
     @staticmethod
     async def fetch(*args, **kwargs):
-        fetcher = CurlAsyncHTTPClient(force_instance=True)
+        async_http_client = CurlAsyncHTTPClient(force_instance=True)
         try:
-            res = await fetcher.fetch(*args, **kwargs)
-            fetcher.close()
+            res = await async_http_client.fetch(*args, **kwargs)
+            async_http_client.close()
         except Exception as e:
-            fetcher.close()
+            async_http_client.close()
             raise e
         return res

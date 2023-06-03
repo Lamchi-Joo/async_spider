@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import asyncio
 from aiologger import Logger
 import os
@@ -17,8 +18,7 @@ LOG_ENABLED = True  # 是否开启日志
 LOG_TO_CONSOLE = True  # 是否输出到控制台
 LOG_TO_FILE = True  # 是否输出到文件
 
-LOG_DIR = os.path.join(dirname(abspath(__file__)), 'logs')
-LOG_LEVEL = 'DEBUG'  # 日志级别
+LOG_DIR = os.path.join(dirname(abspath(__file__)), '../../logs')
 LOG_FORMAT = '[%(asctime)s][%(name)s] - [%(levelname)s]  - %(message)s'  # 每条日志输出格式
 
 
@@ -46,7 +46,7 @@ def get_logger(name=None, debug=False) -> Logger:
     if not logger.handlers:
         formatter = Formatter(LOG_FORMAT)
         if LOG_ENABLED and LOG_TO_CONSOLE:
-            stream_handler = AsyncStreamHandler(sys.stdout, level=LOG_LEVEL, formatter=formatter)
+            stream_handler = AsyncStreamHandler(sys.stdout, formatter=formatter)
             logger.add_handler(stream_handler)
 
         # 输出到文件

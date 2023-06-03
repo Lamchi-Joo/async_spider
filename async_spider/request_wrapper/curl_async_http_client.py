@@ -223,7 +223,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
                 curl.info = {  # type: ignore
                     "headers": httputil.HTTPHeaders(),
                     "buffer": BytesIO(),
-                    "request": request,
+                    "request_wrapper": request,
                     "callback": callback,
                     "queue_start_time": queue_start_time,
                     "curl_start_time": time.time(),
@@ -292,7 +292,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
         try:
             info["callback"](
                 HTTPResponse(
-                    request=info["request"],
+                    request=info["request_wrapper"],
                     code=code,
                     headers=info["headers"],
                     buffer=buffer,
@@ -425,7 +425,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
             # I don't see any way to read the default value from python so it
             # can be restored later.  We'll have to just leave CAINFO untouched
             # if no ca_certs file was specified, and require that if any
-            # request uses a custom ca_certs file, they all must.
+            # request_wrapper uses a custom ca_certs file, they all must.
             pass
 
         if request.allow_ipv6 is False:
@@ -435,7 +435,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
         else:
             curl.setopt(pycurl.IPRESOLVE, pycurl.IPRESOLVE_WHATEVER)
 
-        # Set the request method through curl's irritating interface which makes
+        # Set the request_wrapper method through curl's irritating interface which makes
         # up names for almost every single method
         curl_options = {
             "GET": pycurl.HTTPGET,
@@ -476,7 +476,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
                 # unless we use CUSTOMREQUEST). While the spec doesn't
                 # forbid clients from sending a body, it arguably
                 # disallows the server from doing anything with them.
-                raise ValueError("Body must be None for GET request")
+                raise ValueError("Body must be None for GET request_wrapper")
             request_buffer = BytesIO(utf8(request.body or ""))
 
             def ioctl(cmd: int) -> None:
