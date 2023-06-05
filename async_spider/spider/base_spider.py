@@ -14,7 +14,6 @@ from tornado.httputil import url_concat
 from fake_useragent import UserAgent
 
 from async_spider.utils.aiologger_helper import get_logger
-from async_spider.utils.bloom_filter_on_redis import RedisBloomFilter
 from async_spider.request_wrapper import RequestWrapper
 from async_spider.utils import request_retry, get_proxies
 
@@ -39,7 +38,6 @@ class BaseSpider(object):
 
         self.logger = None
         self.db = None
-        self.bf = None
         self.task_queue = None
         self.batch_size = batch_size
         self.request_wrapper = RequestWrapper()
@@ -179,8 +177,6 @@ class BaseSpider(object):
 
     async def init_session(self):
         self.task_queue = asyncio.Queue(maxsize=self.batch_size)
-        name = "debug_filter"
-        self.bf = RedisBloomFilter(name=name)  # 布隆过滤器
         self.logger = get_logger(self.name)
 
     def run(self):
@@ -215,5 +211,3 @@ class BaseSpider(object):
         await self.logger.shutdown()
         await asyncio.sleep(0.05)  # 优雅的关闭退出
 
-    def __del__(self):
-        self.bf.__del__()

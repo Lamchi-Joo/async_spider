@@ -2,20 +2,17 @@
 
 ## ·异步采集小小小框架，项目使用Python3.7.5
 ## · 开始之前
-1.在一切开始之前，你需要先安装redis，用于布隆过滤器过滤、可参考以下链接
 
-`[1]`https://redis.io/download/
-
-2.**fork** 本仓库，然后clone你fork的仓库到你的本地：
+1.**fork** 本仓库，然后clone你fork的仓库到你的本地：
 ```shell
 git clone git@github.com:Lamchi-Joo/async_spider.git
 ```
-3.拉取至本地后，创建python的虚拟环境：
+2.拉取至本地后，创建python的虚拟环境：
 ```shell
 virtualenv --no-site-packages venv
 source venv/bin/activate
 ```
-4.进入项目后，在项目根目录使用以下命令安装第三方依赖包
+3.进入项目后，在项目根目录使用以下命令安装第三方依赖包
 ```shell
 python -m pip intsall -r requirements.txt
 ```
