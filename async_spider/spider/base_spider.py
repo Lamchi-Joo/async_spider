@@ -132,11 +132,7 @@ class BaseSpider(object):
 
         async def worker_loop(worker):
             await self.logger.info(f'worker {worker}: loop started...')
-            worker_loop_retry_count = 0
             while True:
-                if worker_loop_retry_count >= 3:
-                    await self.logger.info(f'worker {worker}: loop closed...')
-                    return
 
                 # 从生成器取出任务添加进队列
                 if self.task_queue.empty():
@@ -149,13 +145,9 @@ class BaseSpider(object):
 
                 try:
                     msg = self.task_queue.get_nowait()
+                    await self.start_task(msg)  # 执行任务
                 except asyncio.queues.QueueEmpty:
-                    worker_loop_retry_count += 1
-                    await self.logger.debug(f'worker {worker}: queue is empty, waiting...')
-                    await asyncio.sleep(0.5)
-                    continue
-
-                await self.start_task(msg)  # 执行任务
+                    break
 
         # 根据self.concurrent_limit启动多个任务处理协程
         task_processing_coroutines = [asyncio.create_task(worker_loop(_)) for _ in range(self.concurrent_limit)]
