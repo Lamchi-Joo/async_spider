@@ -131,7 +131,7 @@ class BaseSpider(object):
         msg_generator = self.msg_generator()
 
         async def worker_loop(worker):
-            await self.logger.info(f'worker {worker}: loop started...')
+            # await self.logger.info(f'worker {worker}: loop started...')
             while True:
 
                 # 从生成器取出任务添加进队列
