@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-from .curl_async_http_client import CurlAsyncHTTPClient
+from tornado.httpclient import AsyncHTTPClient
+
+AsyncHTTPClient.configure(
+    'async_spider.request_wrapper.curl_async_http_client.CurlAsyncHTTPClient'
+)
 
 
 class RequestWrapper(object):
@@ -11,7 +15,7 @@ class RequestWrapper(object):
 
     @staticmethod
     async def fetch(*args, **kwargs):
-        async_http_client = CurlAsyncHTTPClient(force_instance=True)
+        async_http_client = AsyncHTTPClient(force_instance=True)
         try:
             res = await async_http_client.fetch(*args, **kwargs)
             async_http_client.close()
