@@ -4,6 +4,8 @@
 import re
 import asyncio
 from functools import wraps
+from http.cookies import SimpleCookie
+from urllib.parse import urljoin
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -17,25 +19,36 @@ def request_retry():
 
     def wrap(func):
         @wraps(func)
-        async def inner(self, *args, **kwargs):
+        async def inner(self, url, **kwargs):
             retry_count = 0
+            redirect_times = 0
+            max_redirects = 5
+            if kwargs.get("max_redirects"):
+                max_redirects = kwargs["max_redirects"]
+            follow_redirects = True
+            if "follow_redirects" in kwargs:
+                follow_redirects = kwargs["follow_redirects"]
+            if 'headers' not in kwargs:
+                kwargs['headers'] = {
+                    "Accept-Encoding": "gzip, deflate",
+                    "Accept-Language": "zh-CN,zh;q=0.9",
+                    "Cache-Control": "no-cache",
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
+                                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                                  "Chrome/111.0.0.0 Safari/537.36"
+                }
+            kwargs["follow_redirects"] = False
+            cookiejar = None
             max_retry_count = self.MAX_RETRY_COUNT
             retry_time_delay = self.RETRY_TIME_DELAY
-            if 'url' in kwargs:
-                url = kwargs.get('url')
-            else:
-                url = args[0]
             if not url:
                 raise Exception('url is None')
-            if not (isinstance(max_retry_count, int) and max_retry_count >= 0):
-                raise Exception('max_retry_count must be integer and greater or equal to 0')
+            await self.logger.info(f'[GET] url: {url}')
             while True:
                 if retry_count > max_retry_count:
                     return
-                if retry_count > 0:
-                    await self.logger.info(f'[RETRY] retry_count: {retry_count}, url: {url}')
                 try:
-                    result = await func(self, *args, **kwargs)
+                    result = await func(self, url, **kwargs)
                 except aiohttp.client_exceptions.ClientConnectorError:
                     # 处理ip代理挂了的情况
                     retry_count += 1
@@ -49,6 +62,44 @@ def request_retry():
                             retry_count += 1
                             if retry_time_delay:
                                 await asyncio.sleep(retry_time_delay)
+                            if 300 <= e.response.code < 400:
+                                if follow_redirects and redirect_times <= max_redirects:
+                                    redirect_times += 1
+                                    location = e.response.headers.get(
+                                        'Location', None
+                                    )
+                                    set_cookies = e.response.headers.get_list(
+                                        'Set-Cookie'
+                                    )
+                                    if location:
+                                        target_url = urljoin(
+                                            url, location
+                                        )
+                                        if target_url:
+                                            url = target_url
+                                        else:
+                                            url = location
+
+                                    if cookiejar is None:
+                                        cookiejar = SimpleCookie()
+
+                                    cookiejar.load(
+                                        kwargs["headers"].get('Cookie', '')
+                                    )
+
+                                    if set_cookies:
+                                        for set_cookie in set_cookies:
+                                            cookiejar.load(set_cookie)
+
+                                    cookie = '; '.join(
+                                        [
+                                            key + '=' + morsel.value
+                                            for key, morsel in cookiejar.items()
+                                        ]
+                                    )
+                                    kwargs["headers"]['Cookie'] = cookie
+                                else:
+                                    return
                     else:
                         retry_count += 1
                         if retry_time_delay:
