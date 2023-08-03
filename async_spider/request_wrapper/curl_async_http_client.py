@@ -17,6 +17,8 @@
 import collections
 import functools
 import logging
+import random
+
 import pycurl
 import threading
 import time
@@ -320,6 +322,18 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
         ):  # PROTOCOLS first appeared in pycurl 7.19.5 (2014-07-12)
             curl.setopt(pycurl.PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS)
             curl.setopt(pycurl.REDIR_PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS)
+
+        # Get a list of supported cipher suites from the SSL library
+        cipher_suites = "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+HIGH:DH+HIGH:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+HIGH:RSA+3DES"
+
+        # Randomly shuffle the cipher suites list
+        cipher_suites_list = cipher_suites.split(":")
+        random.shuffle(cipher_suites_list)
+        randomized_cipher_suites = ":".join(cipher_suites_list) + ':!aNULL:!eNULL:!MD5'
+
+        # Set the randomized cipher suites list to the SSL options
+        curl.setopt(pycurl.SSL_CIPHER_LIST, randomized_cipher_suites)
+
         return curl
 
     def _curl_setup_request(
