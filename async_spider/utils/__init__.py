@@ -55,51 +55,49 @@ def request_retry():
                     await asyncio.sleep(300)
                 except HTTPError as e:
                     if e.response:
-                        if e.response.code == 404:
-                            # 404 not found, return immediately
-                            return
+                        if 300 <= e.response.code < 400:
+                            if follow_redirects and redirect_times <= max_redirects:
+                                retry_count += 1
+                                if retry_time_delay:
+                                    await asyncio.sleep(retry_time_delay)
+                                redirect_times += 1
+                                location = e.response.headers.get(
+                                    'Location', None
+                                )
+                                set_cookies = e.response.headers.get_list(
+                                    'Set-Cookie'
+                                )
+                                if location:
+                                    target_url = urljoin(
+                                        url, location
+                                    )
+                                    if target_url:
+                                        url = target_url
+                                    else:
+                                        url = location
+
+                                if cookiejar is None:
+                                    cookiejar = SimpleCookie()
+
+                                cookiejar.load(
+                                    kwargs["headers"].get('Cookie', '')
+                                )
+
+                                if set_cookies:
+                                    for set_cookie in set_cookies:
+                                        cookiejar.load(set_cookie)
+
+                                cookie = '; '.join(
+                                    [
+                                        key + '=' + morsel.value
+                                        for key, morsel in cookiejar.items()
+                                    ]
+                                )
+                                kwargs["headers"]['Cookie'] = cookie
+                            else:
+                                return e.response.code
                         else:
-                            retry_count += 1
-                            if retry_time_delay:
-                                await asyncio.sleep(retry_time_delay)
-                            if 300 <= e.response.code < 400:
-                                if follow_redirects and redirect_times <= max_redirects:
-                                    redirect_times += 1
-                                    location = e.response.headers.get(
-                                        'Location', None
-                                    )
-                                    set_cookies = e.response.headers.get_list(
-                                        'Set-Cookie'
-                                    )
-                                    if location:
-                                        target_url = urljoin(
-                                            url, location
-                                        )
-                                        if target_url:
-                                            url = target_url
-                                        else:
-                                            url = location
-
-                                    if cookiejar is None:
-                                        cookiejar = SimpleCookie()
-
-                                    cookiejar.load(
-                                        kwargs["headers"].get('Cookie', '')
-                                    )
-
-                                    if set_cookies:
-                                        for set_cookie in set_cookies:
-                                            cookiejar.load(set_cookie)
-
-                                    cookie = '; '.join(
-                                        [
-                                            key + '=' + morsel.value
-                                            for key, morsel in cookiejar.items()
-                                        ]
-                                    )
-                                    kwargs["headers"]['Cookie'] = cookie
-                                else:
-                                    return
+                            return e.response
                     else:
                         retry_count += 1
                         if retry_time_delay:
