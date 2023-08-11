@@ -14,7 +14,7 @@ source venv/bin/activate
 ```
 3.进入项目后，在项目根目录使用以下命令安装第三方依赖包
 ```shell
-python -m pip intsall -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ## · demo
