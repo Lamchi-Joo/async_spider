@@ -50,17 +50,10 @@ class RedisBloomFilter(object):
     async def add(self, key):
         """Add a key into filter"""
         hashes = self.make_hashes(key)
-        found_all_bits = True
         offset = 0
         for k in hashes:
-            if found_all_bits and not await self._redis.getbit(self.name, offset + k):
-                found_all_bits = False
             await self._redis.setbit(self.name, offset + k, True)
             offset += self.bits_per_slice
-
-        if not found_all_bits:
-            return False
-        return True
 
     def remove(self, key):
         """Remove a key from filter"""
