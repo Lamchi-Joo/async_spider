@@ -6,7 +6,6 @@ from copy import deepcopy
 import time
 import traceback
 from typing import Optional, Union
-import warnings
 
 from tornado.httpclient import HTTPResponse
 import cchardet as chardet
@@ -19,9 +18,7 @@ from async_spider.utils import request_retry, get_proxies
 
 try:
     import uvloop
-
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    warnings.filterwarnings('ignore')
+    uvloop.install()
 except (ModuleNotFoundError, ImportError):
     pass
 
