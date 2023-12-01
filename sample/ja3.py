@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-    ja3.py
-    ~~~~~~~~~~~
 
-    :author: Lamchi
-    :copyright: (c) 2023, qizhidao
-    :date created: 2023-08-03
-    :python version: 3.7.3
-"""
 from async_spider.spider import BaseSpider
 
 
